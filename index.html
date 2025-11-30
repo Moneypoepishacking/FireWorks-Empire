@@ -1,0 +1,798 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FireWorks Empire — Webshop</title>
+  <meta name="description" content="FireWorks Empire - Buy fireworks online. Webshop with cart, accounts and admin panel (local demo)." />
+  <style>
+    :root{
+      --bg:#06070a;
+      --card:#0f1724;
+      --accent:#ff6b6b;
+      --accent-2:#ffd166;
+      --glass: rgba(255,255,255,0.04);
+      --muted: #93a3bf;
+      --glass-2: rgba(255,255,255,0.02);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,Arial;
+      background: radial-gradient(1000px 500px at 10% 10%, rgba(255,107,107,0.04), transparent),
+                  radial-gradient(700px 400px at 90% 90%, rgba(255,209,102,0.03), transparent),
+                  var(--bg);
+      color:#e6eef8;padding:26px;
+      overflow-y:auto;
+    }
+    header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px}
+    .brand{display:flex;align-items:center;gap:14px}
+    .logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;font-weight:700;color:#081122}
+    .brand h1{margin:0;font-size:20px}
+    .brand p{margin:0;font-size:12px;color:var(--muted)}
+    .container{display:grid;grid-template-columns:1fr 380px;gap:22px}
+    main{padding:20px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent)}
+    .hero{display:flex;gap:18px;align-items:center;margin-bottom:18px;position:relative;overflow:hidden;padding-bottom:10px}
+    .hero-fireworks{position:absolute;inset:0;pointer-events:none}
+    .search-row{display:flex;gap:10px;margin-top:12px}
+    .search{flex:1;padding:12px;border-radius:12px;border:1px solid var(--glass);background:transparent;color:inherit}
+    .btn{padding:10px 14px;border-radius:10px;border:0;cursor:pointer;background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#081122;font-weight:600}
+    .chip{padding:8px 12px;border-radius:999px;background:var(--glass);color:var(--muted);border:1px solid rgba(255,255,255,0.02);cursor:pointer}
+    .chip.active{background:linear-gradient(90deg, rgba(255,107,107,0.12), rgba(255,209,102,0.06));color:#fff}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);padding:14px;border-radius:12px;border:1px solid var(--glass-2);position:relative;overflow:hidden}
+    .fw-visual{height:110px;border-radius:10px;background:linear-gradient(180deg,#091021, #0f1724);display:flex;align-items:center;justify-content:center;position:relative}
+    .fw-visual .fw-spark{width:6px;height:6px;border-radius:50%;position:absolute;opacity:0;transform:translate(-50%,-50%);animation:fw-spark 1600ms linear infinite}
+    @keyframes fw-spark {
+      0%{opacity:1; transform: translate(-50%,-50%) scale(0.6) translateY(0)}
+      50%{opacity:1; transform: translate(-50%,-120%) scale(1.2)}
+      100%{opacity:0; transform: translate(-50%,-220%) scale(0.2)}
+    }
+    .card h3{margin:8px 0 0;font-size:16px}
+    .price{font-weight:700;margin-top:6px}
+    .meta{color:var(--muted);font-size:13px;margin-top:8px}
+    .card .card-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+    .cart{padding:18px;border-radius:14px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);height:calc(100% - 0px);border:1px solid var(--glass-2);position:relative}
+    .cart h3{margin-top:0}
+    .cart-items{max-height:58vh;overflow:auto;margin-top:12px}
+    .cart-item{display:flex;gap:8px;align-items:center;padding:8px;border-radius:10px;background:var(--glass);margin-bottom:8px}
+    .qty{display:inline-flex;align-items:center;gap:6px}
+    .small{font-size:13px;color:var(--muted)}
+    .total-row{position:absolute;left:18px;right:18px;bottom:18px;padding-top:12px;border-top:1px dashed rgba(255,255,255,0.03)}
+    .nav-links{display:flex;gap:8px;align-items:center}
+    .account-btn{background:transparent;border:1px solid var(--glass);padding:8px 10px;border-radius:10px;color:var(--muted);cursor:pointer}
+    .admin-badge{padding:6px 8px;border-radius:8px;background:rgba(255,209,102,0.12);color:#ffd166;font-weight:700}
+    .modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(2,6,23,0.6);backdrop-filter: blur(6px);z-index:1200}
+    .modal-card{width:760px;max-width:94%;background:linear-gradient(180deg,#071025, #081122);padding:20px;border-radius:12px;border:1px solid rgba(255,255,255,0.03);max-height:92vh;overflow:auto}
+    @media(max-width:980px){.container{grid-template-columns:1fr}.cart{order:2}}
+    /* subtle fireworks in hero */
+    .fw-pulse{position:absolute;right:12px;top:8px;width:220px;height:120px;pointer-events:none}
+    .sparkles{position:absolute;inset:0;pointer-events:none}
+    .confetti-piece{position:fixed;width:10px;height:14px;opacity:0;pointer-events:none;transform-origin:center;z-index:9999}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="logo">FW</div>
+      <div>
+        <h1>FireWorks Empire</h1>
+        <p>Safe fireworks — webshop</p>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px;align-items:center">
+      <div class="nav-links">
+        <button id="openCartBtn" class="btn">Cart (<span id="cartCount">0</span>)</button>
+        <div id="authArea"></div>
+        <button id="adminPanelBtn" class="chip" style="display:none">Admin</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <main>
+      <section class="hero">
+        <div style="flex:1;z-index:1">
+          <h2>Make your night unforgettable</h2>
+          <p>Rockets, cakes, fountains — choose your show and order responsibly.</p>
+          <div class="search-row">
+            <input id="search" class="search" placeholder="Search products e.g. 'rocket' or 'cake'" />
+            <button id="resetProducts" class="btn">Reset products</button>
+          </div>
+        </div>
+
+        <div style="width:260px;text-align:right;z-index:1">
+          <div style="padding:12px;border-radius:12px;background:linear-gradient(90deg, rgba(255,107,107,0.06), rgba(255,209,102,0.03));">
+            <div style="font-weight:700">Safety tip</div>
+            <div class="small">Keep distance, read labels and comply with local restrictions.</div>
+          </div>
+        </div>
+
+        <div class="hero-fireworks" aria-hidden="true">
+          <svg viewBox="0 0 200 100" preserveAspectRatio="xMidYMid slice" style="width:100%;height:100%;">
+            <defs>
+              <radialGradient id="f1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#ff6b6b"/></radialGradient>
+            </defs>
+            <!-- decorative fireworks shapes -->
+            <g transform="translate(20,10) rotate(-10)"><circle cx="10" cy="40" r="3" fill="#ffd166" opacity="0.9"/></g>
+            <g transform="translate(70,20)"><circle cx="10" cy="30" r="4" fill="#ff6b6b" opacity="0.9"/></g>
+            <g transform="translate(140,8)"><circle cx="10" cy="40" r="3" fill="#ffd166" opacity="0.9"/></g>
+          </svg>
+        </div>
+
+      </section>
+
+      <div id="categoryChips" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap"></div>
+
+      <section class="grid" id="productGrid"></section>
+    </main>
+
+    <aside class="cart" id="cartPanel">
+      <h3>Your Cart</h3>
+      <div class="cart-items" id="cartItems"></div>
+      <div class="total-row">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div class="small">Subtotal</div>
+            <div id="subtotal">€0.00</div>
+          </div>
+          <div style="text-align:right">
+            <div class="small">Taxes included (demo)</div>
+            <button id="checkoutBtn" class="btn">Checkout</button>
+            <button id="clearCart" style="margin-left:8px;" class="chip">Clear</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <template id="productTemplate">
+    <div class="card">
+      <div class="fw-visual">
+        <!-- spark dots injected by JS for visual flair -->
+      </div>
+      <h3></h3>
+      <div class="meta"></div>
+      <div class="price"></div>
+      <div class="card-actions"></div>
+    </div>
+  </template>
+
+  <script>
+    // STORAGE KEYS
+    const PROD_KEY = 'fw_empire_products_v4';
+    const CART_KEY = 'fw_empire_cart_v4';
+    const USER_KEY = 'fw_empire_users_v3';
+    const SESSION_KEY = 'fw_empire_session_v3';
+    const ORDERS_KEY = 'fw_empire_orders_v3';
+
+    // DEFAULT PRODUCTS
+    const defaultProducts = [
+      {id:'p-rocket-01', name:'Sky Bomber Rocket (5 pcs)', category:'Rockets', price:19.99, desc:'High bang with colorful tail', stock:120},
+      {id:'p-rocket-02', name:'Rapid Rocket Pack (10)', category:'Rockets', price:34.99, desc:'Fast sequence rockets', stock:60},
+      {id:'p-cake-09', name:'Thunder Cake 25 shots', category:'Cakes', price:44.50, desc:'25 rapid multi-color bursts', stock:30},
+      {id:'p-cake-16', name:'Color Burst Cake 16s', category:'Cakes', price:32.75, desc:'Colorful strobes and bursts', stock:22},
+      {id:'p-fountain-03', name:'Silver Fountain (medium)', category:'Fountains', price:14.00, desc:'Long silver spark fountain', stock:50},
+      {id:'p-fountain-06', name:'Gold Fountain (large)', category:'Fountains', price:21.00, desc:'Wide golden showers', stock:18},
+      {id:'p-spark-02', name:'Sparkler Pack (10x)', category:'Handheld', price:6.95, desc:'Safe for small audiences, ~60s burn', stock:200},
+      {id:'p-combo-01', name:'Grand Finale Box', category:'Combos', price:99.00, desc:'Mix of 6 cakes + 4 rockets', stock:10},
+      {id:'p-salute-01', name:'Silent Salute Pack', category:'Special', price:29.99, desc:'Lower noise effects, visual focus', stock:40}
+    ];
+
+    // DEFAULT USERS - includes demo admin (local use)
+    const defaultUsers = [
+      {id:'u-admin', username:'admin', password:'admin123', name:'Site Admin', email:'admin@example.com', isAdmin:true},
+      {id:'u-demo', username:'demo', password:'demo', name:'Demo User', email:'demo@example.com', isAdmin:false},
+      // Your requested admin account (local/demo only)
+      {id:'u-qanwas', username:'QANWAS', password:'Maas3914!', name:'Maas', email:'maas@example.com', isAdmin:true}
+    ];
+
+    // helpers
+    function loadJSON(key){
+      try{
+        const raw = localStorage.getItem(key);
+        if(!raw) return null;
+        return JSON.parse(raw);
+      } catch(e){
+        console.warn('Corrupt localStorage for', key);
+        localStorage.removeItem(key);
+        return null;
+      }
+    }
+    function saveJSON(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+
+    function ensureInit(){
+      if(!loadJSON(PROD_KEY)) saveJSON(PROD_KEY, defaultProducts);
+      if(!loadJSON(USER_KEY)) saveJSON(USER_KEY, defaultUsers);
+      if(!loadJSON(ORDERS_KEY)) saveJSON(ORDERS_KEY, []);
+      if(!loadJSON(CART_KEY)) saveJSON(CART_KEY, []);
+    }
+
+    ensureInit();
+
+    // app state
+    let products = loadJSON(PROD_KEY) || defaultProducts.slice();
+    let users = loadJSON(USER_KEY) || defaultUsers.slice();
+    let cart = loadJSON(CART_KEY) || [];
+    let orders = loadJSON(ORDERS_KEY) || [];
+    let session = loadJSON(SESSION_KEY) || null;
+
+    // refs
+    const productGrid = document.getElementById('productGrid');
+    const template = document.getElementById('productTemplate');
+    const searchInput = document.getElementById('search');
+    const categoryChips = document.getElementById('categoryChips');
+    const cartItemsEl = document.getElementById('cartItems');
+    const subtotalEl = document.getElementById('subtotal');
+    const cartCountEl = document.getElementById('cartCount');
+    const authArea = document.getElementById('authArea');
+    const adminPanelBtn = document.getElementById('adminPanelBtn');
+
+    let state = { q:'', category:'All' };
+    function formatPrice(n){ return '€' + n.toFixed(2); }
+
+    // categories
+    function getCategories(){ const set = new Set(products.map(p=>p.category)); return ['All', ...Array.from(set)]; }
+    function renderCategories(){
+      categoryChips.innerHTML = '';
+      getCategories().forEach(cat=>{
+        const btn = document.createElement('button');
+        btn.className = 'chip' + (state.category===cat? ' active':'');
+        btn.textContent = cat;
+        btn.addEventListener('click', ()=>{ state.category = cat; render(); });
+        categoryChips.appendChild(btn);
+      });
+    }
+
+    // create a few spark dots for product visual
+    function fillSparks(container){
+      // remove old
+      container.innerHTML = '';
+      const n = 6;
+      for(let i=0;i<n;i++){
+        const d = document.createElement('div');
+        d.className='fw-spark';
+        // random placement
+        const left = 20 + Math.random()*60; // %
+        const top = 80 + Math.random()*20;
+        const delay = Math.random()*1400;
+        d.style.left = left + '%';
+        d.style.top = top + '%';
+        d.style.background = (i%2? '#ffd166':'#ff6b6b');
+        d.style.animationDelay = delay + 'ms';
+        container.appendChild(d);
+      }
+    }
+
+    // svg visual (kept for compatibility)
+    function createSVG(){
+      return `
+        <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+          <defs><radialGradient id="g1" cx="30%" cy="30%"><stop offset="0%" stop-color="#fff" stop-opacity=".9"/><stop offset="100%" stop-color="#ff6b6b" stop-opacity=".7"/></radialGradient></defs>
+          <g transform="translate(2,2)"><circle cx="30" cy="30" r="10" fill="url(#g1)"/><g stroke="#ffd166" stroke-width="2" stroke-linecap="round"><line x1="30" y1="0" x2="30" y2="12"/><line x1="30" y1="48" x2="30" y2="36"/><line x1="0" y1="30" x2="12" y2="30"/><line x1="48" y1="30" x2="36" y2="30"/></g></g>
+        </svg>
+      `;
+    }
+
+    // render products grid
+    function render(){
+      renderCategories();
+      const q = state.q.trim().toLowerCase();
+      const items = products.filter(p=>{
+        if(state.category !== 'All' && p.category !== state.category) return false;
+        if(!q) return true;
+        return p.name.toLowerCase().includes(q) || (p.desc && p.desc.toLowerCase().includes(q)) || p.category.toLowerCase().includes(q);
+      });
+
+      productGrid.innerHTML = '';
+      items.forEach(p=>{
+        const node = template.content.cloneNode(true);
+        const card = node.querySelector('.card');
+        const visual = card.querySelector('.fw-visual');
+        visual.innerHTML = createSVG();
+        fillSparks(visual);
+        card.querySelector('h3').textContent = p.name;
+        card.querySelector('.meta').textContent = p.category + ' • ' + p.desc;
+        card.querySelector('.price').textContent = formatPrice(p.price);
+        const actions = card.querySelector('.card-actions');
+        const addBtn = document.createElement('button'); addBtn.className='btn'; addBtn.textContent='Add to cart';
+        addBtn.addEventListener('click', ()=> addToCart(p.id));
+        actions.appendChild(addBtn);
+        const quick = document.createElement('button'); quick.className='chip'; quick.textContent='Quick view'; quick.addEventListener('click', ()=> showQuickView(p));
+        actions.appendChild(quick);
+        const adminEdit = document.createElement('button'); adminEdit.className='chip'; adminEdit.textContent='Edit'; adminEdit.style.display='none';
+        adminEdit.addEventListener('click', ()=> openEditProduct(p));
+        actions.appendChild(adminEdit);
+        productGrid.appendChild(node);
+      });
+
+      // show admin edit buttons if admin
+      if(session && session.isAdmin){
+        Array.from(document.querySelectorAll('.card .chip')).forEach(b=>{
+          if(b.textContent==='Edit') b.style.display='inline-flex';
+        });
+      }
+
+      updateCartUI();
+      renderAuthArea();
+    }
+
+    // CART logic
+    function saveCart(){ saveJSON(CART_KEY, cart); }
+    function addToCart(productId, qty=1){ const p = products.find(x=>x.id===productId); if(!p) return; const entry = cart.find(x=>x.id===productId); if(entry) entry.qty += qty; else cart.push({id:productId, qty}); saveCart(); render(); animateAdd(); }
+    function removeFromCart(productId){ cart = cart.filter(i=>i.id!==productId); saveCart(); render(); }
+    function setQty(productId, qty){ const e = cart.find(i=>i.id===productId); if(!e) return; e.qty = Math.max(0, qty); if(e.qty===0) removeFromCart(productId); saveCart(); render(); }
+    function clearCart(){ cart=[]; saveCart(); render(); }
+
+    function updateCartUI(){
+      cartItemsEl.innerHTML = '';
+      let subtotal = 0;
+      cart.forEach(item=>{
+        const p = products.find(x=>x.id===item.id); if(!p) return;
+        const el = document.createElement('div'); el.className = 'cart-item';
+        el.innerHTML = `<div style="flex:1"><div style="font-weight:700">${p.name}</div><div class="small">${p.category} • ${formatPrice(p.price)}</div></div>`;
+        const qtyWrap = document.createElement('div');
+        qtyWrap.innerHTML = `<div class="qty"><button class="chip" data-action="dec">-</button><div style="min-width:28px;text-align:center">${item.qty}</div><button class="chip" data-action="inc">+</button></div><div style="width:100px;text-align:right">${formatPrice(p.price * item.qty)}</div><button class="chip remove-btn" style="margin-left:8px">Remove</button>`;
+        el.appendChild(qtyWrap);
+        cartItemsEl.appendChild(el);
+        qtyWrap.querySelector('[data-action="dec"]').addEventListener('click', ()=> setQty(item.id, item.qty-1));
+        qtyWrap.querySelector('[data-action="inc"]').addEventListener('click', ()=> setQty(item.id, item.qty+1));
+        qtyWrap.querySelector('.remove-btn').addEventListener('click', ()=> removeFromCart(item.id));
+        subtotal += p.price * item.qty;
+      });
+      subtotalEl.textContent = formatPrice(subtotal);
+      cartCountEl.textContent = cart.reduce((s,i)=>s+i.qty,0);
+    }
+
+    // quick view modal
+    function showQuickView(p){
+      const modal = document.createElement('div'); modal.className='modal';
+      modal.innerHTML = `
+        <div class="modal-card">
+          <div style="display:flex;gap:16px;align-items:center">
+            <div style="width:160px;height:120px;border-radius:10px;background:linear-gradient(180deg,#071025,#081122);display:flex;align-items:center;justify-content:center">${createSVG()}</div>
+            <div style="flex:1">
+              <h3 style="margin:0">${p.name}</h3>
+              <div class="small">${p.category} • ${p.desc}</div>
+              <div style="margin-top:8px;font-weight:700">${formatPrice(p.price)}</div>
+              <div style="margin-top:12px;display:flex;gap:8px">
+                <button id="qAdd" class="btn">Add to cart</button>
+                <button id="qClose" class="chip">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      modal.querySelector('#qClose').addEventListener('click', ()=> modal.remove());
+      modal.querySelector('#qAdd').addEventListener('click', ()=>{ addToCart(p.id); modal.remove(); });
+    }
+
+    // add animation
+    function animateAdd(){
+      const burst = document.createElement('div'); burst.style.position='fixed'; burst.style.left='50%'; burst.style.top='120px'; burst.style.pointerEvents='none';
+      for(let i=0;i<6;i++){ const b=document.createElement('div'); b.style.width=b.style.height=(6+Math.random()*8)+'px'; b.style.borderRadius='50%'; b.style.margin=(i*8)+'px'; b.style.background = i%2? 'radial-gradient(circle,#ffd166,transparent)':'radial-gradient(circle,#ff6b6b,transparent)'; b.style.opacity='0.9'; burst.appendChild(b); }
+      document.body.appendChild(burst); setTimeout(()=> burst.remove(),900);
+    }
+
+    // reset products button
+    document.getElementById('resetProducts').addEventListener('click', ()=>{
+      if(confirm('Reset products to default list?')){
+        products = defaultProducts.slice();
+        saveJSON(PROD_KEY, products);
+        render();
+      }
+    });
+
+    // search
+    searchInput.addEventListener('input', (e)=>{ state.q = e.target.value; render(); });
+
+    // checkout -> now collects name, email, address + simulated payment
+    document.getElementById('checkoutBtn').addEventListener('click', ()=>{
+      if(cart.length===0){ alert('Your cart is empty.'); return; }
+      openPaymentModal();
+    });
+
+    function openPaymentModal(){
+      const modal = document.createElement('div'); modal.className='modal';
+      const preName = session ? (session.name || session.username) : '';
+      const preEmail = session ? (session.email || '') : '';
+      modal.innerHTML = `
+        <div class="modal-card">
+          <h3 style="margin-top:0">Checkout</h3>
+          <p class="small">Enter shipping details and simulate payment. Replace with a real gateway for production.</p>
+          <div style="display:flex;gap:12px">
+            <div style="flex:1">
+              <label class="small">Full name</label>
+              <input id="orderName" placeholder="Full name" style="width:100%;padding:8px;margin-bottom:8px;border-radius:8px" value="${escapeHtml(preName)}">
+              <label class="small">Email</label>
+              <input id="orderEmail" placeholder="Email" style="width:100%;padding:8px;margin-bottom:8px;border-radius:8px" value="${escapeHtml(preEmail)}">
+              <label class="small">Shipping address</label>
+              <input id="orderAddress" placeholder="Address, city, postcode" style="width:100%;padding:8px;margin-bottom:8px;border-radius:8px">
+              <div style="margin-top:12px;display:flex;gap:8px">
+                <button id="payNow" class="btn">Pay now (demo)</button>
+                <button id="cancelPay" class="chip">Cancel</button>
+              </div>
+            </div>
+            <div style="width:300px;padding:12px;border-left:1px solid rgba(255,255,255,0.02)">
+              <h4>Order summary</h4>
+              <div id="paySummary" style="max-height:260px;overflow:auto"></div>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+
+      // show summary
+      const summary = modal.querySelector('#paySummary');
+      let total = 0;
+      cart.forEach(i=>{
+        const p = products.find(x=>x.id===i.id); if(!p) return;
+        total += p.price * i.qty;
+        const row = document.createElement('div'); row.style.marginBottom='6px';
+        row.innerHTML = `${i.qty} × <strong>${p.name}</strong> — ${formatPrice(p.price * i.qty)}`;
+        summary.appendChild(row);
+      });
+      const tot = document.createElement('div'); tot.style.marginTop='8px'; tot.style.fontWeight='700'; tot.textContent = 'Total: ' + formatPrice(total);
+      summary.appendChild(tot);
+
+      modal.querySelector('#cancelPay').addEventListener('click', ()=> modal.remove());
+
+      modal.querySelector('#payNow').addEventListener('click', ()=>{
+        const name = modal.querySelector('#orderName').value.trim();
+        const email = modal.querySelector('#orderEmail').value.trim();
+        const address = modal.querySelector('#orderAddress').value.trim();
+        if(!name || !email || !address){ alert('Please provide name, email and shipping address'); return; }
+        modal.querySelector('#payNow').disabled = true; modal.querySelector('#payNow').textContent = 'Processing...';
+
+        // simulate payment + create order
+        setTimeout(()=>{
+          const id = 'o-' + Math.random().toString(36).slice(2,9);
+          const order = {
+            id,
+            userId: session ? session.id : null,
+            name,
+            email,
+            address,
+            items: cart.slice(),
+            total,
+            date: new Date().toISOString(),
+            paid: true
+          };
+          orders.push(order); saveJSON(ORDERS_KEY, orders);
+
+          // if user logged in, save email to user record if blank
+          if(session){
+            const u = users.find(x=>x.id===session.id);
+            if(u && (!u.email || u.email==='')){ u.email = email; saveJSON(USER_KEY, users); }
+          }
+
+          // confetti effect
+          runConfetti();
+
+          alert('Payment simulated. Order ID: ' + id);
+          clearCart();
+          modal.remove();
+          render();
+        }, 900);
+      });
+    }
+
+    // confetti pieces for success
+    function runConfetti(){
+      const colours = ['#ff6b6b','#ffd166','#9bf6ff','#bdb2ff'];
+      const count = 28;
+      const pieces = [];
+      for(let i=0;i<count;i++){
+        const el = document.createElement('div'); el.className='confetti-piece';
+        el.style.left = (20 + Math.random()*60) + '%';
+        el.style.top = (20 + Math.random()*30) + '%';
+        el.style.background = colours[Math.floor(Math.random()*colours.length)];
+        el.style.transform = `rotate(${Math.random()*360}deg)`;
+        el.style.opacity = '1';
+        document.body.appendChild(el);
+        pieces.push(el);
+        // fall animation
+        const dx = (Math.random()*200 - 100);
+        const dy = 600 + Math.random()*200;
+        el.animate([
+          { transform: `translateY(0) rotate(${Math.random()*360}deg)`, opacity:1 },
+          { transform: `translate(${dx}px,${dy}px) rotate(${Math.random()*720}deg)`, opacity:0.1 }
+        ], { duration: 1800 + Math.random()*1000, easing:'cubic-bezier(.2,.8,.2,1)' });
+      }
+      setTimeout(()=> pieces.forEach(p=>p.remove()), 3000);
+    }
+
+    // AUTH / ACCOUNTS
+    function renderAuthArea(){
+      authArea.innerHTML = '';
+      if(session){
+        const el = document.createElement('div'); el.style.display='flex'; el.style.alignItems='center'; el.style.gap='8px';
+        const nameEl = document.createElement('div'); nameEl.textContent = session.name || session.username; nameEl.className='small';
+        el.appendChild(nameEl);
+        const acctBtn = document.createElement('button'); acctBtn.className='account-btn'; acctBtn.textContent='My account'; acctBtn.addEventListener('click', ()=> openAccount()); el.appendChild(acctBtn);
+        const logout = document.createElement('button'); logout.className='chip'; logout.textContent='Logout'; logout.addEventListener('click', ()=>{ session=null; localStorage.removeItem(SESSION_KEY); render(); }); el.appendChild(logout);
+        authArea.appendChild(el);
+
+        // Admin button only for isAdmin
+        if(session.isAdmin){
+          adminPanelBtn.style.display='inline-flex';
+          adminPanelBtn.onclick = ()=> openAdminPanel();
+        } else {
+          adminPanelBtn.style.display='none';
+        }
+      } else {
+        const login = document.createElement('button'); login.className='account-btn'; login.textContent='Login / Register'; login.addEventListener('click', ()=> openAuthModal()); authArea.appendChild(login);
+        adminPanelBtn.style.display='none';
+      }
+    }
+
+    function openAuthModal(){
+      const modal = document.createElement('div'); modal.className='modal';
+      modal.innerHTML = `
+        <div class="modal-card">
+          <h3 style="margin-top:0">Login or Register</h3>
+          <div style="display:flex;gap:12px">
+            <div style="flex:1">
+              <h4>Login</h4>
+              <input id="liUser" placeholder="Username" style="width:100%;padding:8px;margin-bottom:8px;border-radius:8px">
+              <input id="liPass" placeholder="Password" type="password" style="width:100%;padding:8px;margin-bottom:8px;border-radius:8px">
+              <div style="display:flex;gap:8px">
+                <button id="doLogin" class="btn">Login</button>
+                <button id="closeAuth" class="chip">Close</button>
+              </div>
+            </div>
+            <div style="width:320px;padding:12px;border-left:1px solid rgba(255,255,255,0.02)">
+              <h4>Create account</h4>
+              <input id="rgUser" placeholder="Username" style="width:100%;padding:8px;margin-bottom:8px;border-radius:8px">
+              <input id="rgPass" placeholder="Password" type="password" style="width:100%;padding:8px;margin-bottom:8px;border-radius:8px">
+              <input id="rgName" placeholder="Full name" style="width:100%;padding:8px;margin-bottom:8px;border-radius:8px">
+              <input id="rgEmail" placeholder="Email (for shipping)" style="width:100%;padding:8px;margin-bottom:8px;border-radius:8px">
+              <button id="doRegister" class="btn">Create account</button>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+
+      modal.querySelector('#closeAuth').addEventListener('click', ()=> modal.remove());
+
+      modal.querySelector('#doLogin').addEventListener('click', ()=>{
+        const u = modal.querySelector('#liUser').value.trim(); const p = modal.querySelector('#liPass').value;
+        const user = users.find(x=>x.username===u && x.password===p);
+        if(!user){ alert('Invalid credentials.'); return; }
+        session = { id: user.id, username: user.username, name: user.name, email: user.email || '', isAdmin: !!user.isAdmin };
+        saveJSON(SESSION_KEY, session);
+        modal.remove();
+        render();
+      });
+
+      modal.querySelector('#doRegister').addEventListener('click', ()=>{
+        const u = modal.querySelector('#rgUser').value.trim(); const p = modal.querySelector('#rgPass').value; const n = modal.querySelector('#rgName').value.trim() || u;
+        const e = modal.querySelector('#rgEmail').value.trim();
+        if(!u||!p){ alert('Please provide username and password'); return; }
+        if(users.some(x=>x.username===u)){ alert('Username taken'); return; }
+        const id = 'u-' + Math.random().toString(36).slice(2,9);
+        const nu = { id, username:u, password:p, name:n, email:e||'', isAdmin:false };
+        users.push(nu); saveJSON(USER_KEY, users);
+        alert('Account created. You can now login.');
+      });
+    }
+
+    // account modal (user)
+    function openAccount(){
+      if(!session){ alert('Not logged in'); return; }
+      const modal = document.createElement('div'); modal.className='modal';
+      const userOrders = orders.filter(o=> o.userId === session.id);
+      modal.innerHTML = `
+        <div class="modal-card">
+          <h3 style="margin-top:0">My account</h3>
+          <div style="display:flex;gap:12px">
+            <div style="flex:1">
+              <div><strong>${session.name || session.username}</strong></div>
+              <div class="small">Username: ${session.username}</div>
+              <div class="small">Email: ${(session.email||'')}</div>
+              <div style="margin-top:12px">
+                <h4>My orders</h4>
+                <div id="myOrdersList"></div>
+              </div>
+            </div>
+            <div style="width:220px;text-align:right">
+              <button id="closeAcc" class="chip">Close</button>
+              <button id="deleteAcc" class="chip" style="margin-top:8px">Delete account</button>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+
+      modal.querySelector('#closeAcc').addEventListener('click', ()=> modal.remove());
+      modal.querySelector('#deleteAcc').addEventListener('click', ()=>{
+        if(!confirm('Delete account and orders? This action cannot be undone.')) return;
+        users = users.filter(u=>u.id!==session.id);
+        orders = orders.filter(o=>o.userId!==session.id);
+        saveJSON(USER_KEY, users); saveJSON(ORDERS_KEY, orders);
+        session=null; localStorage.removeItem(SESSION_KEY); modal.remove(); render();
+      });
+
+      const list = modal.querySelector('#myOrdersList');
+      if(userOrders.length===0){
+        list.innerHTML = '<div class="small">No orders yet.</div>';
+      } else {
+        userOrders.slice().reverse().forEach(o=>{
+          const el = document.createElement('div'); el.style.padding='8px'; el.style.borderBottom='1px solid rgba(255,255,255,0.02)'; el.style.marginBottom='6px';
+          el.innerHTML = `<div style="font-weight:700">Order ${o.id} — ${o.paid? '<span class="small">Paid</span>':'<span class="small">Pending</span>'}</div>
+            <div class="small">${new Date(o.date).toLocaleString()}</div>
+            <div class="small">Total: ${formatPrice(o.total)}</div>
+            <div style="margin-top:6px"><button class="chip view-order">View details</button></div>
+          `;
+          list.appendChild(el);
+          el.querySelector('.view-order').addEventListener('click', ()=> showOrderDetails(o));
+        });
+      }
+    }
+
+    // show order details (used by user and admin)
+    function showOrderDetails(order){
+      const modal = document.createElement('div'); modal.className='modal';
+      let itemsHtml = '';
+      order.items.forEach(it=>{
+        const p = products.find(x=>x.id===it.id);
+        itemsHtml += `<div style="padding:6px;border-bottom:1px solid rgba(255,255,255,0.02)"><strong>${p? p.name : it.id}</strong> — ${it.qty} × ${formatPrice(p? p.price : 0)}</div>`;
+      });
+      modal.innerHTML = `
+        <div class="modal-card">
+          <h3 style="margin-top:0">Order ${order.id}</h3>
+          <div class="small">Date: ${new Date(order.date).toLocaleString()}</div>
+          <div style="margin-top:12px"><strong>Buyer</strong>: ${escapeHtml(order.name)} (${escapeHtml(order.email || '')})</div>
+          <div class="small" style="margin-top:6px"><strong>Address</strong>: ${escapeHtml(order.address || '')}</div>
+          <div style="margin-top:12px"><h4>Items</h4>${itemsHtml}</div>
+          <div style="margin-top:12px"><strong>Total:</strong> ${formatPrice(order.total)}</div>
+          <div style="text-align:right;margin-top:12px">
+            <button id="closeOrder" class="chip">Close</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      modal.querySelector('#closeOrder').addEventListener('click', ()=> modal.remove());
+    }
+
+    // ADMIN panel - can view & delete orders and see items
+    function openAdminPanel(){
+      if(!session || !session.isAdmin){ alert('Access denied'); return; }
+      const modal = document.createElement('div'); modal.className='modal';
+      modal.innerHTML = `
+        <div class="modal-card">
+          <h3 style="margin-top:0">Admin Panel</h3>
+          <div style="display:grid;grid-template-columns:1fr 360px;gap:16px">
+            <div>
+              <h4>Products</h4>
+              <div id="adminProducts"></div>
+              <div style="margin-top:8px">
+                <button id="adminAddProduct" class="btn">Add product</button>
+              </div>
+              <h4 style="margin-top:12px">Orders</h4>
+              <div id="adminOrders" style="max-height:320px;overflow:auto"></div>
+            </div>
+            <div>
+              <h4>Users</h4>
+              <div id="adminUsers" style="max-height:420px;overflow:auto"></div>
+            </div>
+          </div>
+          <div style="text-align:right;margin-top:12px">
+            <button id="closeAdmin" class="chip">Close</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      modal.querySelector('#closeAdmin').addEventListener('click', ()=> modal.remove());
+      renderAdminLists(modal);
+    }
+
+    function renderAdminLists(modal){
+      const prodWrap = modal.querySelector('#adminProducts'); prodWrap.innerHTML='';
+      products.forEach(p=>{
+        const el = document.createElement('div'); el.style.display='flex'; el.style.justifyContent='space-between'; el.style.padding='8px'; el.style.borderBottom='1px solid rgba(255,255,255,0.02)';
+        el.innerHTML = `<div><strong>${p.name}</strong><div class="small">${p.id} • ${p.category}</div></div><div style="display:flex;gap:6px"><div class="small">${formatPrice(p.price)}</div><button class="chip edit-prod">Edit</button><button class="chip del-prod">Delete</button></div>`;
+        prodWrap.appendChild(el);
+        el.querySelector('.edit-prod').addEventListener('click', ()=>{ openEditProduct(p); modal.remove(); });
+        el.querySelector('.del-prod').addEventListener('click', ()=>{ if(confirm('Delete product?')){ products = products.filter(x=>x.id!==p.id); saveJSON(PROD_KEY, products); render(); renderAdminLists(modal); } });
+      });
+
+      const ordersWrap = modal.querySelector('#adminOrders'); ordersWrap.innerHTML='';
+      if(orders.length===0) ordersWrap.innerHTML = '<div class="small">No orders yet.</div>';
+      orders.slice().reverse().forEach(o=>{
+        const el = document.createElement('div'); el.style.padding='8px'; el.style.borderBottom='1px solid rgba(255,255,255,0.02)';
+        el.innerHTML = `<div style="font-weight:700">${o.id} ${o.paid?'<span class="small">• Paid</span>':''}</div>
+                        <div class="small">${new Date(o.date).toLocaleString()} • ${escapeHtml(o.name)} • ${escapeHtml(o.email || '')}</div>
+                        <div style="margin-top:6px;display:flex;gap:6px"><button class="chip view-order">View</button><button class="chip del-order">Delete</button></div>`;
+        ordersWrap.appendChild(el);
+        el.querySelector('.view-order').addEventListener('click', ()=> showOrderDetails(o));
+        el.querySelector('.del-order').addEventListener('click', ()=> {
+          if(!confirm('Delete order '+o.id+'? This cannot be undone.')) return;
+          deleteOrder(o.id);
+          renderAdminLists(modal);
+          render();
+        });
+      });
+
+      const usersWrap = modal.querySelector('#adminUsers'); usersWrap.innerHTML='';
+      users.forEach(u=>{
+        const el = document.createElement('div'); el.style.display='flex'; el.style.justifyContent='space-between'; el.style.padding='8px'; el.style.borderBottom='1px solid rgba(255,255,255,0.02)';
+        el.innerHTML = `<div><strong>${u.name}</strong><div class="small">${u.username}${u.isAdmin? ' • admin':''}</div></div><div style="display:flex;gap:6px"><button class="chip view-user">View</button><button class="chip del-user">Delete</button></div>`;
+        usersWrap.appendChild(el);
+        el.querySelector('.view-user').addEventListener('click', ()=>{ alert(JSON.stringify(u, null, 2)) });
+        el.querySelector('.del-user').addEventListener('click', ()=>{
+          if(u.id===session.id){ alert('Cannot delete your own admin account while logged in'); return; }
+          if(confirm('Delete user and their orders?')){
+            users = users.filter(x=>x.id!==u.id);
+            orders = orders.filter(o=>o.userId!==u.id);
+            saveJSON(USER_KEY, users); saveJSON(ORDERS_KEY, orders);
+            renderAdminLists(modal); render();
+          }
+        });
+      });
+
+      modal.querySelector('#adminAddProduct').addEventListener('click', ()=>{ openAddProduct(); modal.remove(); });
+    }
+
+    // delete order helper
+    function deleteOrder(orderId){
+      orders = orders.filter(o=>o.id!==orderId);
+      saveJSON(ORDERS_KEY, orders);
+    }
+
+    function openAddProduct(){
+      if(!session || !session.isAdmin){ alert('Access denied'); return; }
+      const name = prompt('Product name:'); if(!name) return;
+      const cat = prompt('Category:', 'Cakes')||'Cakes';
+      const price = parseFloat(prompt('Price (EUR):', '9.99'))||0;
+      const desc = prompt('Short description:', '')||'';
+      const stock = parseInt(prompt('Stock:', '50'))||0;
+      const id = 'p-' + Math.random().toString(36).slice(2,9);
+      const p = {id, name, category:cat, price, desc, stock};
+      products.push(p); saveJSON(PROD_KEY, products); render();
+    }
+
+    function openEditProduct(p){
+      if(!session || !session.isAdmin){ alert('Access denied'); return; }
+      const name = prompt('Product name:', p.name); if(!name) return;
+      p.name = name;
+      p.category = prompt('Category:', p.category)||p.category;
+      p.price = parseFloat(prompt('Price (EUR):', p.price))||p.price;
+      p.desc = prompt('Short description:', p.desc)||p.desc;
+      p.stock = parseInt(prompt('Stock:', p.stock))||p.stock;
+      saveJSON(PROD_KEY, products); render();
+    }
+
+    // keyboard reset (Ctrl+Shift+R)
+    window.addEventListener('keydown', (e)=>{
+      if(e.key.toLowerCase()==='r' && e.ctrlKey && e.shiftKey){
+        if(confirm('Reset all shop data (products, users, orders, cart)?')){
+          localStorage.removeItem(PROD_KEY);
+          localStorage.removeItem(USER_KEY);
+          localStorage.removeItem(ORDERS_KEY);
+          localStorage.removeItem(CART_KEY);
+          localStorage.removeItem(SESSION_KEY);
+          ensureInit();
+          products = loadJSON(PROD_KEY);
+          users = loadJSON(USER_KEY);
+          orders = loadJSON(ORDERS_KEY);
+          cart = [];
+          session = null;
+          render();
+          alert('All shop data reset.');
+        }
+      }
+    });
+
+    // small html-escape
+    function escapeHtml(s){ if(!s) return ''; return s.replace(/[&<>"']/g, function(m){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]; }); }
+
+    // initial render and small console reminder
+    render();
+    console.log('Demo webshop loaded. For production: implement secure backend, hashed passwords and proper payment gateway.');
+  </script>
+</body>
+</html>
